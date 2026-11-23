@@ -47,9 +47,9 @@ pipeline {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sh '''
-                        .venv/bin/bandit -r app.py -f txt -o reports/bandit-report.txt
+                        bandit -r app.py -f txt -o reports/bandit-report.txt || true
                         cat reports/bandit-report.txt
-                        .venv/bin/bandit -q -ll app.py
+                        bandit -q -ll app.py
                     '''
                 }
             }
@@ -59,9 +59,9 @@ pipeline {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sh '''
-                        .venv/bin/pip-audit -r requirements.txt --desc > reports/pip-audit-report.txt 2>&1 || true
+                        pip-audit -r requirements.txt --desc > reports/pip-audit-report.txt 2>&1 || true
                         cat reports/pip-audit-report.txt
-                        .venv/bin/pip-audit -r requirements.txt
+                        pip-audit -r requirements.txt
                     '''
                 }
             }
