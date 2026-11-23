@@ -148,10 +148,10 @@ def portada():
 @app.route("/hello")
 def hello():
     """!
-    @brief Saluda al usuario cuyo nombre llega en el parámetro de URL «name».
-    @return Página HTML con el saludo.
+    @brief Saluda al usuario escapando caracteres HTML para prevenir XSS.
+    @return Página HTML con el saludo seguro.
     """
-    name = request.args.get("name", "visitante")
+    name = escape(request.args.get("name", "visitante"))
     return f"<h1>Hola, {name}!</h1>"
 
 
