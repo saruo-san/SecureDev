@@ -125,14 +125,18 @@ def antes_de_la_peticion():
 @app.after_request
 def despues_de_la_peticion(respuesta):
     """!
-    @brief Registra la métrica de cada petición atendida.
+    @brief Registra métricas y agrega cabeceras de seguridad HTTP.
     @param respuesta Respuesta que Flask enviará al cliente.
-    @return La misma respuesta.
+    @return La misma respuesta con cabeceras endurecidas.
     """
     endpoint = request.url_rule.rule if request.url_rule else "desconocido"
     if endpoint != "/metrics":
         HTTP_PETICIONES.labels(request.method, endpoint, str(respuesta.status_code)).inc()
         HTTP_LATENCIA.labels(endpoint).observe(time.perf_counter() - g.get("inicio", time.perf_counter()))
+    respuesta.headers["X-Content-Type-Options"] = "nosniff"
+    respuesta.headers["X-Frame-Options"] = "DENY"
+    respuesta.headers["Content-Security-Policy"] = "default-src 'self'; form-action 'self'; frame-ancestors 'none'"
+    respuesta.headers["Referrer-Policy"] = "no-referrer"
     return respuesta
 
 
