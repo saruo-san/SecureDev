@@ -68,6 +68,7 @@ PORTADA = """<!doctype html>
 </form>
 <h2>Acceso administrador</h2>
 <form action="/login" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <input name="usuario" value="admin"> <input name="clave" type="password" value="">
   <button type="submit">Entrar</button>
 </form>
@@ -140,13 +141,23 @@ def despues_de_la_peticion(respuesta):
     return respuesta
 
 
+def obtener_csrf_token():
+    """!
+    @brief Genera o recupera el token anti-CSRF asociado a la sesión del usuario.
+    @return Cadena hexadecimal aleatoria.
+    """
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
 @app.route("/")
 def portada():
     """!
-    @brief Portada HTML con enlaces y formularios del sistema.
+    @brief Portada HTML con enlaces y formularios protegidos con token anti-CSRF.
     @return Página HTML.
     """
-    return render_template_string(PORTADA, version=VERSION)
+    return render_template_string(PORTADA, version=VERSION, csrf_token=obtener_csrf_token())
 
 
 @app.route("/hello")
@@ -218,9 +229,14 @@ def buscar_alumnos():
 @app.route("/login", methods=["POST"])
 def login():
     """!
-    @brief Valida las credenciales del administrador enviadas por formulario.
-    @return JSON con el resultado; 401 si las credenciales no son válidas.
+    @brief Valida token anti-CSRF y credenciales del administrador enviadas por formulario.
+    @return JSON con el resultado; 403 si falla CSRF, 401 si las credenciales no son válidas.
     """
+    token_enviado = request.form.get("csrf_token", "")
+    token_sesion = session.get("csrf_token", "")
+    if not token_sesion or not secrets.compare_digest(token_enviado, token_sesion):
+        LOGIN_FALLIDOS.inc()
+        return jsonify({"error": "Token CSRF inválido o ausente"}), 403
     usuario = request.form.get("usuario", "")
     clave = request.form.get("clave", "")
     if usuario == ADMIN_USUARIO and check_password_hash(ADMIN_CLAVE_HASH, clave):
